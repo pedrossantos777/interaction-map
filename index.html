@@ -1,1 +1,190 @@
-<h1>Bem-vindo à minha página!</h1>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Firmas por hexágono H3</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+
+<link href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/pmtiles@3/dist/pmtiles.js"></script>
+
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; font-family: system-ui, sans-serif; }
+  #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+  #controls {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 1;
+    background: white;
+    padding: 10px 14px;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    font-size: 14px;
+  }
+  #controls label { display: block; margin-bottom: 4px; font-weight: 600; }
+  #controls select { font-size: 14px; padding: 4px; }
+
+  #legend {
+    position: absolute;
+    bottom: 24px;
+    left: 12px;
+    z-index: 1;
+    background: white;
+    padding: 10px 14px;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    font-size: 13px;
+  }
+  #legend .title { font-weight: 600; margin-bottom: 6px; }
+  #legend .ramp {
+    width: 200px;
+    height: 12px;
+    background: linear-gradient(to right, #440154, #3b528b, #21908d, #5dc863, #fde725);
+    border-radius: 2px;
+  }
+  #legend .labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #444;
+  }
+
+  .maplibregl-popup-content {
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="controls">
+  <label for="ano-select">Ano</label>
+  <select id="ano-select"></select>
+</div>
+
+<div id="legend">
+  <div class="title">Quantidade de firmas (F001)</div>
+  <div class="ramp"></div>
+  <div class="labels">
+    <span>0</span><span>25</span><span>50</span><span>100</span><span>200</span>
+  </div>
+</div>
+
+<script>
+// ------------------------------------------------------------------
+// CONFIGURAÇÃO — ajuste estes valores conforme seus dados
+// ------------------------------------------------------------------
+const PMTILES_URL = "hex.pmtiles";   // caminho relativo ao próprio HTML
+const ANOS = [2022, 2023];           // anos disponíveis no filtro
+const ANO_INICIAL = 2023;
+
+const RESOLUCOES = [
+  { res: 4, minzoom: 0,  maxzoom: 6  },
+  { res: 6, minzoom: 6,  maxzoom: 9  },
+  { res: 8, minzoom: 9,  maxzoom: 14 }
+];
+
+// escala de cor (mesma lógica do interpolate() do mapgl / viridis)
+const FILL_COLOR_EXPR = [
+  "interpolate", ["linear"], ["to-number", ["get", "F001"]],
+  0,   "#440154",
+  25,  "#3b528b",
+  50,  "#21908d",
+  100, "#5dc863",
+  200, "#fde725"
+];
+// ------------------------------------------------------------------
+
+let protocol = new pmtiles.Protocol();
+maplibregl.addProtocol("pmtiles", protocol.tile);
+
+const map = new maplibregl.Map({
+  container: "map",
+  style: {
+    version: 8,
+    sources: {
+      basemap: {
+        type: "raster",
+        tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+        tileSize: 256,
+        attribution: "&copy; OpenStreetMap contributors"
+      }
+    },
+    layers: [{ id: "basemap", type: "raster", source: "basemap" }]
+  },
+  center: [-51, -15],   // ajuste para o centro dos seus dados
+  zoom: 4
+});
+
+map.addControl(new maplibregl.NavigationControl(), "top-right");
+
+map.on("load", () => {
+  map.addSource("hex", {
+    type: "vector",
+    url: "pmtiles://" + PMTILES_URL
+  });
+
+  RESOLUCOES.forEach(info => {
+    map.addLayer({
+      id: `fill-h3-r${String(info.res).padStart(2, "0")}`,
+      type: "fill",
+      source: "hex",
+      "source-layer": `h3_r${String(info.res).padStart(2, "0")}`,
+      minzoom: info.minzoom,
+      maxzoom: info.maxzoom,
+      filter: ["==", ["to-number", ["get", "year"]], ANO_INICIAL],
+      paint: {
+        "fill-color": FILL_COLOR_EXPR,
+        "fill-opacity": 0.85,
+        "fill-outline-color": "rgba(255,255,255,0.3)"
+      }
+    });
+
+    // popup ao clicar
+    map.on("click", `fill-h3-r${String(info.res).padStart(2, "0")}`, (e) => {
+      const props = e.features[0].properties;
+      new maplibregl.Popup()
+        .setLngLat(e.lngLat)
+        .setHTML(
+          `F001: ${props.F001}<br>T001: ${props.T001}<br>Ano: ${props.year}`
+        )
+        .addTo(map);
+    });
+
+    map.on("mouseenter", `fill-h3-r${String(info.res).padStart(2, "0")}`, () => {
+      map.getCanvas().style.cursor = "pointer";
+    });
+    map.on("mouseleave", `fill-h3-r${String(info.res).padStart(2, "0")}`, () => {
+      map.getCanvas().style.cursor = "";
+    });
+  });
+});
+
+// seletor de ano
+const select = document.getElementById("ano-select");
+ANOS.forEach(ano => {
+  const opt = document.createElement("option");
+  opt.value = ano;
+  opt.textContent = ano;
+  if (ano === ANO_INICIAL) opt.selected = true;
+  select.appendChild(opt);
+});
+
+select.addEventListener("change", () => {
+  const anoSelecionado = parseInt(select.value, 10);
+  RESOLUCOES.forEach(info => {
+    map.setFilter(
+      `fill-h3-r${String(info.res).padStart(2, "0")}`,
+      ["==", ["to-number", ["get", "year"]], anoSelecionado]
+    );
+  });
+});
+</script>
+
+</body>
+</html>
