@@ -24,8 +24,9 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.3);
     font-size: 14px;
   }
-  #controls label { display: block; margin-bottom: 4px; font-weight: 600; }
-  #controls select { font-size: 14px; padding: 4px; }
+  #controls label { display: block; margin-bottom: 4px; margin-top: 8px; font-weight: 600; }
+  #controls label:first-child { margin-top: 0; }
+  #controls select { font-size: 14px; padding: 4px; width: 100%; }
 
   #legend {
     position: absolute;
@@ -65,14 +66,15 @@
 <div id="controls">
   <label for="ano-select">Ano</label>
   <select id="ano-select"></select>
+
+  <label for="variavel-select">Variável</label>
+  <select id="variavel-select"></select>
 </div>
 
 <div id="legend">
-  <div class="title">Quantidade de firmas (F001)</div>
-  <div class="ramp"></div>
-  <div class="labels">
-    <span>0</span><span>25</span><span>50</span><span>100</span><span>200</span>
-  </div>
+  <div class="title" id="legend-title"></div>
+  <div class="ramp" id="legend-ramp"></div>
+  <div class="labels" id="legend-labels"></div>
 </div>
 
 <script>
@@ -89,15 +91,29 @@ const RESOLUCOES = [
   { res: 8, minzoom: 9,  maxzoom: 14 }
 ];
 
-// escala de cor (mesma lógica do interpolate() do mapgl / viridis)
-const FILL_COLOR_EXPR = [
-  "interpolate", ["linear"], ["to-number", ["get", "F001"]],
-  0,   "#440154",
-  25,  "#3b528b",
-  50,  "#21908d",
-  100, "#5dc863",
-  200, "#fde725"
-];
+// paleta viridis (5 cores) reutilizada para todas as variáveis
+const CORES = ["#440154", "#3b528b", "#21908d", "#5dc863", "#fde725"];
+
+// uma variável por coluna disponível — breaks calculados via
+// quantile(hex_res6$F001, c(0,.25,.5,.75,1)) / quantile(hex_res6$T001, ...) no R
+const VARIAVEIS = {
+  F001: { label: "Quantidade de firmas (F001)", values: [0, 11, 44, 220, 17001] },
+  T001: { label: "Quantidade de trabalhadores (T001)", values: [0, 60, 380, 3256, 755655] }
+};
+const VARIAVEL_INICIAL = "F001";
+
+// distribuição muito assimétrica (cauda longa) — interpolação em escala
+// log10(x + 1) evita que os outliers dominem a paleta inteira
+function buildFillColorExpr(coluna) {
+  const values = VARIAVEIS[coluna].values;
+  const expr = ["interpolate", ["linear"], ["log10", ["+", ["to-number", ["get", coluna]], 1]]];
+  values.forEach((v, i) => { expr.push(Math.log10(v + 1), CORES[i]); });
+  return expr;
+}
+
+function layerId(res) {
+  return `fill-h3-r${String(res).padStart(2, "0")}`;
+}
 // ------------------------------------------------------------------
 
 let protocol = new pmtiles.Protocol();
@@ -130,8 +146,9 @@ map.on("load", () => {
   });
 
   RESOLUCOES.forEach(info => {
+    const id = layerId(info.res);
     map.addLayer({
-      id: `fill-h3-r${String(info.res).padStart(2, "0")}`,
+      id: id,
       type: "fill",
       source: "hex",
       "source-layer": `h3_r${String(info.res).padStart(2, "0")}`,
@@ -139,14 +156,14 @@ map.on("load", () => {
       maxzoom: info.maxzoom,
       filter: ["==", ["to-number", ["get", "year"]], ANO_INICIAL],
       paint: {
-        "fill-color": FILL_COLOR_EXPR,
+        "fill-color": buildFillColorExpr(VARIAVEL_INICIAL),
         "fill-opacity": 0.85,
         "fill-outline-color": "rgba(255,255,255,0.3)"
       }
     });
 
     // popup ao clicar
-    map.on("click", `fill-h3-r${String(info.res).padStart(2, "0")}`, (e) => {
+    map.on("click", id, (e) => {
       const props = e.features[0].properties;
       new maplibregl.Popup()
         .setLngLat(e.lngLat)
@@ -156,33 +173,71 @@ map.on("load", () => {
         .addTo(map);
     });
 
-    map.on("mouseenter", `fill-h3-r${String(info.res).padStart(2, "0")}`, () => {
-      map.getCanvas().style.cursor = "pointer";
-    });
-    map.on("mouseleave", `fill-h3-r${String(info.res).padStart(2, "0")}`, () => {
-      map.getCanvas().style.cursor = "";
-    });
+    map.on("mouseenter", id, () => { map.getCanvas().style.cursor = "pointer"; });
+    map.on("mouseleave", id, () => { map.getCanvas().style.cursor = ""; });
   });
+
+  atualizarLegenda(VARIAVEL_INICIAL);
 });
 
-// seletor de ano
-const select = document.getElementById("ano-select");
+// ------------------------------------------------------------------
+// Legenda dinâmica — reflete a variável ativa
+// ------------------------------------------------------------------
+function formatarNumero(v) {
+  if (v >= 1000) return (v / 1000).toFixed(v >= 10000 ? 0 : 1) + "k";
+  return String(v);
+}
+
+function atualizarLegenda(coluna) {
+  const info = VARIAVEIS[coluna];
+  document.getElementById("legend-title").textContent = info.label;
+  document.getElementById("legend-ramp").style.background =
+    `linear-gradient(to right, ${CORES.join(", ")})`;
+  document.getElementById("legend-labels").innerHTML =
+    info.values.map(v => `<span>${formatarNumero(v)}</span>`).join("");
+}
+
+// ------------------------------------------------------------------
+// Seletor de ano
+// ------------------------------------------------------------------
+const selectAno = document.getElementById("ano-select");
 ANOS.forEach(ano => {
   const opt = document.createElement("option");
   opt.value = ano;
   opt.textContent = ano;
   if (ano === ANO_INICIAL) opt.selected = true;
-  select.appendChild(opt);
+  selectAno.appendChild(opt);
 });
 
-select.addEventListener("change", () => {
-  const anoSelecionado = parseInt(select.value, 10);
+selectAno.addEventListener("change", () => {
+  const anoSelecionado = parseInt(selectAno.value, 10);
   RESOLUCOES.forEach(info => {
     map.setFilter(
-      `fill-h3-r${String(info.res).padStart(2, "0")}`,
+      layerId(info.res),
       ["==", ["to-number", ["get", "year"]], anoSelecionado]
     );
   });
+});
+
+// ------------------------------------------------------------------
+// Seletor de variável (F001 / T001)
+// ------------------------------------------------------------------
+const selectVariavel = document.getElementById("variavel-select");
+Object.keys(VARIAVEIS).forEach(coluna => {
+  const opt = document.createElement("option");
+  opt.value = coluna;
+  opt.textContent = VARIAVEIS[coluna].label;
+  if (coluna === VARIAVEL_INICIAL) opt.selected = true;
+  selectVariavel.appendChild(opt);
+});
+
+selectVariavel.addEventListener("change", () => {
+  const coluna = selectVariavel.value;
+  const expr = buildFillColorExpr(coluna);
+  RESOLUCOES.forEach(info => {
+    map.setPaintProperty(layerId(info.res), "fill-color", expr);
+  });
+  atualizarLegenda(coluna);
 });
 </script>
 
