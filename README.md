@@ -1,1 +1,1 @@
-# interation-map
+# interaction-map
