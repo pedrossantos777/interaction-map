@@ -334,12 +334,17 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
 });
 
 // carrega o conteúdo de metodologia.html (arquivo separado, editável à parte)
-fetch("metodologia.html")
+// URL "Raw" direta para o arquivo no seu repositório
+const urlMetodologia = "https://raw.githubusercontent.com/pedrossantos777/interaction-map/main/metodologia";
+
+fetch(urlMetodologia)
   .then(res => {
-    if (!res.ok) throw new Error("metodologia.html não encontrado");
+    if (!res.ok) throw new Error("metodologia não encontrada no GitHub");
     return res.text();
   })
-  .then(html => { document.getElementById("tab-metodologia").innerHTML = html; })
+  .then(texto => { 
+    document.getElementById("tab-metodologia").innerHTML = texto; 
+  })
   .catch(() => {
     document.getElementById("tab-metodologia").innerHTML =
       "<p>Não foi possível carregar o texto de metodologia.</p>";
