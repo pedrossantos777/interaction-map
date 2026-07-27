@@ -10,7 +10,7 @@
 </p>
 
 <p>
-  Os hexágonos são exibidos em três resoluções H3 (4, 6 e 8), que se
+  Os hexágonos são exibidos em três resoluções H3 (4, 6 e 8) que se
   alternam automaticamente conforme o nível de zoom do mapa — visões mais
   amplas mostram hexágonos maiores (resolução 4), enquanto visões mais
   próximas revelam o detalhe da resolução 8.
@@ -23,7 +23,7 @@
 
 <p>
   <strong>Artigo com a metodologia completa:</strong>
-  <a href="https://exemplo.com/artigo-metodologia" target="_blank" rel="noopener">
+  <a href="https://ipeagit.github.io/intro_access_book/pt/" rel="noopener">
     Leia o artigo completo aqui
   </a>
   <!-- troque a URL acima pelo link real do artigo -->
