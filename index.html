@@ -350,11 +350,11 @@ fetch("metodologia.html")
 // ------------------------------------------------------------------
 // ajuste usuário/repo/tag conforme a release que você publicar:
 // gh release create dados-v1 dados_h3_r04.parquet dados_h3_r06.parquet dados_h3_r08.parquet
-const GITHUB_RELEASE_BASE = "https://github.com/SEU_USUARIO/SEU_REPO/releases/download/dados-v1";
+const GITHUB_RELEASE_BASE = "https://github.com/pedrossantos777/interaction-map/releases/download/vteste/";
 
 document.getElementById("export-btn").addEventListener("click", () => {
   const res = document.getElementById("export-resolucao").value; // "04", "06" ou "08"
-  const arquivo = `dados_h3_r${res}.parquet`;
+  const arquivo = `rais_h3_2022_{res}.parquet`;
   const url = `${GITHUB_RELEASE_BASE}/${arquivo}`;
 
   const link = document.createElement("a");
