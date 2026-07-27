@@ -354,7 +354,7 @@ const GITHUB_RELEASE_BASE = "https://github.com/pedrossantos777/interaction-map/
 
 document.getElementById("export-btn").addEventListener("click", () => {
   const res = document.getElementById("export-resolucao").value; // "04", "06" ou "08"
-  const arquivo = `rais_h3_2022_{res}.parquet`;
+  const arquivo = `rais_h3_2022_${res}.parquet`;
   const url = `${GITHUB_RELEASE_BASE}/${arquivo}`;
 
   const link = document.createElement("a");
