@@ -365,26 +365,23 @@ fetch("metodologia.html")
 //  document.body.removeChild(link);
 //});
 
-// Base do seu release no GitHub
-const GITHUB_RELEASE_BASE = "https://github.com/pedrossantos777/interaction-map/releases/tag/vteste";
+// Constante base exata (sem a barra no final)
+const GITHUB_RELEASE_BASE = "https://github.com/pedrossantos777/interaction-map/releases/download/vteste";
 
-//https://github.com/pedrossantos777/interaction-map/releases/download/vteste
 document.getElementById("export-btn").addEventListener("click", () => {
-  // Pega o valor selecionado no HTML ("4", "6" ou "8")
+  // Captura o valor 4, 6 ou 8 do menu dropdown
   const res = document.getElementById("export-resolucao").value; 
   
-  // Monta o nome exato do arquivo que está no seu GitHub
-  // Exemplo final: rais_h3_2022_4.parquet
+  // Interpola a string para formar rais_h3_2022_4.parquet, por exemplo
   const arquivo = `rais_h3_2022_${res}.parquet`; 
   
-  // Junta a base do link com o nome do arquivo
+  // Monta a URL final limpa
   const url = `${GITHUB_RELEASE_BASE}/${arquivo}`;
 
-  // Cria o link invisível e força o clique para baixar
+  // Cria o link temporário e dispara o download
   const link = document.createElement("a");
   link.href = url;
   link.download = arquivo; 
-  link.target = "_blank"; 
   
   document.body.appendChild(link);
   link.click();
