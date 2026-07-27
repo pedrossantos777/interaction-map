@@ -1,0 +1,30 @@
+<!--
+  EDITE ESTE ARQUIVO LIVREMENTE — é só um trecho de HTML solto (sem <html>/<head>/<body>),
+  carregado dentro do painel de metodologia do dashboard.
+  Você pode usar <p>, <strong>, <ul>/<li>, <a href="...">, etc.
+-->
+
+<p>
+  Este dashboard apresenta a distribuição espacial de firmas e trabalhadores
+  formais no Brasil, agregados em uma grade hexagonal H3, com dados da RAIS.
+</p>
+
+<p>
+  Os hexágonos são exibidos em três resoluções H3 (4, 6 e 8), que se
+  alternam automaticamente conforme o nível de zoom do mapa — visões mais
+  amplas mostram hexágonos maiores (resolução 4), enquanto visões mais
+  próximas revelam o detalhe da resolução 8.
+</p>
+
+<p>
+  <strong>Fonte dos dados:</strong> Relação Anual de Informações Sociais
+  (RAIS), anos de referência 2022 e 2023.
+</p>
+
+<p>
+  <strong>Artigo com a metodologia completa:</strong>
+  <a href="https://exemplo.com/artigo-metodologia" target="_blank" rel="noopener">
+    Leia o artigo completo aqui
+  </a>
+  <!-- troque a URL acima pelo link real do artigo -->
+</p>
