@@ -350,20 +350,46 @@ fetch("metodologia.html")
 // ------------------------------------------------------------------
 // ajuste usuário/repo/tag conforme a release que você publicar:
 // gh release create dados-v1 dados_h3_r04.parquet dados_h3_r06.parquet dados_h3_r08.parquet
-const GITHUB_RELEASE_BASE = "https://github.com/pedrossantos777/interaction-map/releases/download/vteste/";
+//const GITHUB_RELEASE_BASE = "https://github.com/pedrossantos777/interaction-map/releases/download/vteste/";
+
+//document.getElementById("export-btn").addEventListener("click", () => {
+ // const res = document.getElementById("export-resolucao").value; // "04", "06" ou "08"
+//  const arquivo = `rais_h3_2022_${res}.parquet`;
+//  const url = `${GITHUB_RELEASE_BASE}/${arquivo}`;
+
+//  const link = document.createElement("a");
+//  link.href = url;
+//  link.download = arquivo;
+//  document.body.appendChild(link);
+//  link.click();
+//  document.body.removeChild(link);
+//});
+
+// Base do seu release no GitHub
+const GITHUB_RELEASE_BASE = "https://github.com/pedrossantos777/interaction-map/releases/download/vteste";
 
 document.getElementById("export-btn").addEventListener("click", () => {
-  const res = document.getElementById("export-resolucao").value; // "04", "06" ou "08"
-  const arquivo = `rais_h3_2022_${res}.parquet`;
+  // Pega o valor selecionado no HTML ("4", "6" ou "8")
+  const res = document.getElementById("export-resolucao").value; 
+  
+  // Monta o nome exato do arquivo que está no seu GitHub
+  // Exemplo final: rais_h3_2022_4.parquet
+  const arquivo = `rais_h3_2022_${res}.parquet`; 
+  
+  // Junta a base do link com o nome do arquivo
   const url = `${GITHUB_RELEASE_BASE}/${arquivo}`;
 
+  // Cria o link invisível e força o clique para baixar
   const link = document.createElement("a");
   link.href = url;
-  link.download = arquivo;
+  link.download = arquivo; 
+  link.target = "_blank"; 
+  
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
 });
+  
 </script>
 
 </body>
