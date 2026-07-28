@@ -144,7 +144,7 @@
       <button id="export-btn">Baixar .parquet</button>
       <div class="aviso">
         O download traz os dados agregados (todos os anos) da resolução
-        selecionada, incluindo o índice H3 e as colunas F001/T001.
+        selecionada, incluindo o índice H3, o ano e as colunas n_firmas/qt_vinc_ativos.
       </div>
     </div>
   </div>
@@ -163,32 +163,34 @@
 // CONFIGURAÇÃO — ajuste estes valores conforme seus dados
 // ------------------------------------------------------------------
 const PMTILES_URL = "https://github.com/pedrossantos777/interaction-map/releases/download/br_title/hex.pmtiles_br";
-const ANOS = [2013, 2023];           // anos disponíveis no filtro
+const ANOS = Array.from({ length: 2023 - 2013 + 1 }, (_, i) => 2013 + i); // 2013..2023
 const ANO_INICIAL = 2023;
 
 const RESOLUCOES = [
-  { res: 4, minzoom: 0,  maxzoom: 6  },
-  { res: 6, minzoom: 6,  maxzoom: 9  },
-  { res: 8, minzoom: 9,  maxzoom: 14 }
+  { res: 4, minzoom: 0,  maxzoom: 7  },
+  { res: 6, minzoom: 7,  maxzoom: 10 },
+  { res: 8, minzoom: 10, maxzoom: 14 }
 ];
 
 // paleta viridis (5 cores) reutilizada para todas as variáveis
 const CORES = ["#440154", "#3b528b", "#21908d", "#5dc863", "#fde725"];
 
-// uma variável por coluna disponível — breaks calculados via
-// quantile(hex_res6$n_firmas, c(0,.25,.5,.75,1)) / quantile(hex_res6$T001, ...) no R
+// uma variável por coluna disponível — breaks devem bater com os `values`
+// usados no interpolate() do R (fill_firmas / fill_vinc); ajuste ambos os
+// lados juntos se recalcular quantile(hex_res6$n_firmas, ...) no R
 const VARIAVEIS = {
-  n_firmas: { label: "Quantidade de firmas (F001)", values: [0, 11, 44, 220, 17001] },
-  qt_vinc_ativos: { label: "Quantidade de trabalhadores (T001)", values: [0, 60, 380, 3256, 755655] }
+  n_firmas: { label: "Quantidade de firmas", values: [0, 25, 50, 100, 200] },
+  qt_vinc_ativos: { label: "Vínculos ativos (trabalhadores)", values: [0, 25, 50, 100, 200] }
 };
 const VARIAVEL_INICIAL = "n_firmas";
 
-// distribuição muito assimétrica (cauda longa) — interpolação em escala
-// log10(x + 1) evita que os outliers dominem a paleta inteira
+// interpolação linear direta — igual ao build_fill()/interpolate() do R.
+// Se a distribuição vier muito assimétrica (poucos hexágonos com valores
+// extremos), considere trocar para log10(x+1) igual fizemos antes.
 function buildFillColorExpr(coluna) {
   const values = VARIAVEIS[coluna].values;
-  const expr = ["interpolate", ["linear"], ["log10", ["+", ["to-number", ["get", coluna]], 1]]];
-  values.forEach((v, i) => { expr.push(Math.log10(v + 1), CORES[i]); });
+  const expr = ["interpolate", ["linear"], ["to-number", ["get", coluna]]];
+  values.forEach((v, i) => { expr.push(v, CORES[i]); });
   return expr;
 }
 
@@ -249,7 +251,7 @@ map.on("load", () => {
       new maplibregl.Popup()
         .setLngLat(e.lngLat)
         .setHTML(
-          `F001: ${props.n_firmas}<br>n_firmas: ${props.qt_vinc_ativos}<br>Ano: ${props.ano}`
+          `Firmas: ${props.n_firmas}<br>Trabalhadores: ${props.qt_vinc_ativos}<br>Ano: ${props.ano}`
         )
         .addTo(map);
     });
@@ -301,7 +303,7 @@ selectAno.addEventListener("change", () => {
 });
 
 // ------------------------------------------------------------------
-// Seletor de variável (F001 / T001)
+// Seletor de variável (n_firmas / qt_vinc_ativos)
 // ------------------------------------------------------------------
 const selectVariavel = document.getElementById("variavel-select");
 Object.keys(VARIAVEIS).forEach(coluna => {
@@ -355,47 +357,24 @@ fetch(urlMetodologia)
 // GitHub Release — não entram no peso do repo/Pages, aceitam até 2GB
 // por arquivo, sem precisar de Git LFS)
 // ------------------------------------------------------------------
-// ajuste usuário/repo/tag conforme a release que você publicar:
-// gh release create dados-v1 dados_h3_r04.parquet dados_h3_r06.parquet dados_h3_r08.parquet
-//const GITHUB_RELEASE_BASE = "https://github.com/pedrossantos777/interaction-map/releases/download/vteste/";
-
-//document.getElementById("export-btn").addEventListener("click", () => {
- // const res = document.getElementById("export-resolucao").value; // "04", "06" ou "08"
-//  const arquivo = `rais_h3_2022_${res}.parquet`;
-//  const url = `${GITHUB_RELEASE_BASE}/${arquivo}`;
-
-//  const link = document.createElement("a");
-//  link.href = url;
-//  link.download = arquivo;
-//  document.body.appendChild(link);
-//  link.click();
-//  document.body.removeChild(link);
-//});
-
-
-// Constante base exata (sem a barra no final)
-const GITHUB_RELEASE_BASE = "https://github.com/pedrossantos777/interaction-map/releases/download/vteste";
+// ajuste usuário/repo/tag conforme a release onde você publicar os parquets
+// (pode ser a mesma release do .pmtiles ou uma separada, ex.:
+//  gh release create dados-v1 dados_h3_r04.parquet dados_h3_r06.parquet dados_h3_r08.parquet)
+const GITHUB_RELEASE_BASE_DADOS = "https://github.com/pedrossantos777/interaction-map/releases/download/vteste";
 
 document.getElementById("export-btn").addEventListener("click", () => {
-  // Captura o valor 4, 6 ou 8 do menu dropdown
-  const res = document.getElementById("export-resolucao").value; 
-  
-  // Interpola a string para formar rais_h3_2022_4.parquet, por exemplo
-  const arquivo = `rais_h3_2022_${res}.parquet`; 
-  
-  // Monta a URL final limpa
-  const url = `${GITHUB_RELEASE_BASE}/${arquivo}`;
+  const res = document.getElementById("export-resolucao").value; // "4", "6" ou "8"
+  const resPadded = res.padStart(2, "0");
+  const arquivo = `dados_h3_r${resPadded}.parquet`; // agrega todos os anos (2013-2023) daquela resolução
+  const url = `${GITHUB_RELEASE_BASE_DADOS}/${arquivo}`;
 
-  // Cria o link temporário e dispara o download
   const link = document.createElement("a");
   link.href = url;
-  link.download = arquivo; 
-  
+  link.download = arquivo;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
 });
-  
 </script>
 
 </body>
