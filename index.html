@@ -162,8 +162,8 @@
 // ------------------------------------------------------------------
 // CONFIGURAÇÃO — ajuste estes valores conforme seus dados
 // ------------------------------------------------------------------
-const PMTILES_URL = "hex.pmtiles";   // caminho relativo ao próprio HTML
-const ANOS = [2022, 2023];           // anos disponíveis no filtro
+const PMTILES_URL = "https://github.com/pedrossantos777/interaction-map/releases/download/br_title/hex.pmtiles_br";
+const ANOS = [2013, 2023];           // anos disponíveis no filtro
 const ANO_INICIAL = 2023;
 
 const RESOLUCOES = [
@@ -176,12 +176,12 @@ const RESOLUCOES = [
 const CORES = ["#440154", "#3b528b", "#21908d", "#5dc863", "#fde725"];
 
 // uma variável por coluna disponível — breaks calculados via
-// quantile(hex_res6$F001, c(0,.25,.5,.75,1)) / quantile(hex_res6$T001, ...) no R
+// quantile(hex_res6$n_firmas, c(0,.25,.5,.75,1)) / quantile(hex_res6$T001, ...) no R
 const VARIAVEIS = {
-  F001: { label: "Quantidade de firmas (F001)", values: [0, 11, 44, 220, 17001] },
-  T001: { label: "Quantidade de trabalhadores (T001)", values: [0, 60, 380, 3256, 755655] }
+  n_firmas: { label: "Quantidade de firmas (F001)", values: [0, 11, 44, 220, 17001] },
+  qt_vinc_ativos: { label: "Quantidade de trabalhadores (T001)", values: [0, 60, 380, 3256, 755655] }
 };
-const VARIAVEL_INICIAL = "F001";
+const VARIAVEL_INICIAL = "n_firmas";
 
 // distribuição muito assimétrica (cauda longa) — interpolação em escala
 // log10(x + 1) evita que os outliers dominem a paleta inteira
@@ -235,7 +235,7 @@ map.on("load", () => {
       "source-layer": `h3_r${String(info.res).padStart(2, "0")}`,
       minzoom: info.minzoom,
       maxzoom: info.maxzoom,
-      filter: ["==", ["to-number", ["get", "year"]], ANO_INICIAL],
+      filter: ["==", ["to-number", ["get", "ano"]], ANO_INICIAL],
       paint: {
         "fill-color": buildFillColorExpr(VARIAVEL_INICIAL),
         "fill-opacity": 0.85,
@@ -249,7 +249,7 @@ map.on("load", () => {
       new maplibregl.Popup()
         .setLngLat(e.lngLat)
         .setHTML(
-          `F001: ${props.F001}<br>T001: ${props.T001}<br>Ano: ${props.year}`
+          `F001: ${props.n_firmas}<br>n_firmas: ${props.qt_vinc_ativos}<br>Ano: ${props.ano}`
         )
         .addTo(map);
     });
@@ -295,7 +295,7 @@ selectAno.addEventListener("change", () => {
   RESOLUCOES.forEach(info => {
     map.setFilter(
       layerId(info.res),
-      ["==", ["to-number", ["get", "year"]], anoSelecionado]
+      ["==", ["to-number", ["get", "ano"]], anoSelecionado]
     );
   });
 });
